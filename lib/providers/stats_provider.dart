@@ -7,8 +7,8 @@ class StatsProvider extends ChangeNotifier {
   double _monthlyGoalHours = 20.0;
   double get monthlyGoalHours => _monthlyGoalHours;
 
-  Map<DateTime, int> _dailyMinutes = {}; // key = day (yyyy-mm-dd)
-  Map<String, int> _trackPlayCounts = {};
+  final Map<DateTime, int> _dailyMinutes = {}; // key = day (yyyy-mm-dd)
+  final Map<String, int> _trackPlayCounts = {};
 
   StatsProvider() {
     _loadGoal();

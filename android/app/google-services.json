@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "179706745788",
+    "project_id": "audio-player-c0813",
+    "storage_bucket": "audio-player-c0813.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:179706745788:android:3f57bef9af6ed50874d1b9",
+        "android_client_info": {
+          "package_name": "com.example.audio_player"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA1Q1pQqBw7bp4hpOFL3uMkxRY8MyIXyUw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

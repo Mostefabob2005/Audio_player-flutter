@@ -8,7 +8,7 @@ import 'package:audio_app_secure/screens/home_screen.dart';
 import 'package:just_audio/just_audio.dart';
 
 class BiometricScreen extends StatefulWidget {
-  const BiometricScreen({Key? key}) : super(key: key);
+  const BiometricScreen({super.key});
 
   @override
   State<BiometricScreen> createState() => _BiometricScreenState();
