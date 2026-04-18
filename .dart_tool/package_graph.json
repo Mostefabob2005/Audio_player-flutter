@@ -1,10 +1,10 @@
 {
   "roots": [
-    "firebase"
+    "audio_player"
   ],
   "packages": [
     {
-      "name": "firebase",
+      "name": "audio_player",
       "version": "1.0.0+1",
       "dependencies": [
         "cloud_firestore",

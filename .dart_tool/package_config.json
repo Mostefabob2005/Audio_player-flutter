@@ -260,7 +260,7 @@
       "languageVersion": "3.4"
     },
     {
-      "name": "firebase",
+      "name": "audio_player",
       "rootUri": "../",
       "packageUri": "lib/",
       "languageVersion": "3.11"
