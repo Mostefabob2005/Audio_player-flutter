@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:AUDIO_PLAYER-FLUTTER/services/biometric_service.dart';
-import 'package:audio_app_secure/providers/auth_provider.dart';
-import 'package:audio_app_secure/screens/login_screen.dart';
-import 'package:audio_app_secure/screens/home_screen.dart';
+import 'package:AUDIO_PLAYER-FLUTTER/providers/auth_provider.dart';
+import 'package:AUDIO_PLAYER-FLUTTER/screens/login_screen.dart';
+import 'package:AUDIO_PLAYER-FLUTTER/screens/home_screen.dart';
 import 'package:just_audio/just_audio.dart';
 
 class BiometricScreen extends StatefulWidget {
@@ -82,13 +82,15 @@ class _BiometricScreenState extends State<BiometricScreen> {
     // For simplicity, we can use a package like app_settings
   }
 
-  void _showNoBiometricsDialog() { /* ... */ }
-  void _showRetryDialog() { /* ... */ }
+  void _showNoBiometricsDialog() {
+    /* ... */
+  }
+  void _showRetryDialog() {
+    /* ... */
+  }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
-    );
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 }
