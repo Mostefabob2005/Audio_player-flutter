@@ -1,6 +1,6 @@
 {
-    "name": "audio_player",
-    "short_name": "audio_player",
+    "name": "audio_player_app",
+    "short_name": "audio_player_app",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

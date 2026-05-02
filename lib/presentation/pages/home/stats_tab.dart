@@ -57,6 +57,10 @@ class _StatsTabState extends State<StatsTab> {
       return const Center(child: CircularProgressIndicator());
     }
 
+    if (_stats == null) {
+      return const Center(child: Text('No stats available'));
+    }
+
     final stats = _stats!;
     final monthMinutes = stats.currentMonthMinutes;
     final monthHours = monthMinutes / 60.0;

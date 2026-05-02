@@ -70,10 +70,12 @@ class AppTheme {
       labelStyle: const TextStyle(color: onSurfaceVariant),
       hintStyle: const TextStyle(color: onSurfaceVariant),
     ),
-    cardTheme: CardTheme(
+    cardTheme: const CardThemeData(
       color: cardDark,
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(16)),
+      ),
     ),
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(
       backgroundColor: surfaceDark,

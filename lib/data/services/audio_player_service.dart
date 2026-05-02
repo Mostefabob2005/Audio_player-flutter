@@ -105,5 +105,5 @@ class AudioPlayerService {
     return idx > 0;
   }
 
-  Future<void> dispose() => _player.dispose();
+  void dispose() => _player.dispose();
 }

@@ -7,6 +7,7 @@ import '../../../data/services/biometric_service.dart';
 import '../../../data/services/auth_service.dart';
 import '../../../core/utils/app_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/result.dart';
 
 class BiometricPage extends StatefulWidget {
   const BiometricPage({super.key});

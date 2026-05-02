@@ -7,6 +7,7 @@ import '../../data/repositories/favorites_repository.dart';
 import '../../data/repositories/stats_repository.dart';
 import '../../data/services/audio_player_service.dart';
 import '../../data/services/biometric_service.dart';
+import '../../core/utils/result.dart';
 
 class AudioProvider extends ChangeNotifier {
   final AudioPlayerService _playerService;
