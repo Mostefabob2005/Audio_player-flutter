@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/utils/app_router.dart';
+import '../../providers/audio_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../favorites/favorites_page.dart';
 import 'stats_tab.dart';
@@ -17,12 +18,29 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
+  String? _lastUid;
 
   final List<Widget> _tabs = const [
     StatsTab(),
     PlaylistTab(),
     FavoritesPage(isTab: true),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Keep AudioProvider in sync with authenticated user.
+    final uid = context.read<AuthProvider>().user?.uid;
+    if (uid != null && uid.isNotEmpty && uid != _lastUid) {
+      _lastUid = uid;
+      context.read<AudioProvider>().setUid(uid);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -84,9 +102,10 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 12),
             Text(
               name,
-              style: Theme.of(
-                ctx,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(ctx)
+                  .textTheme
+                  .titleLarge
+                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 24),
             ListTile(

@@ -28,7 +28,7 @@ class StatsRepository {
     await prefs.setInt(AppConstants.keyMonthlyGoalHours, hours);
   }
 
-  // ─── Listening Stats ──────────────────────────────────────────────────────
+  // ─── Fetch Stats ──────────────────────────────────────────────────────────
 
   Future<ListeningStatsModel> fetchStats(String uid) async {
     try {
@@ -36,20 +36,58 @@ class StatsRepository {
       if (!doc.exists) return ListeningStatsModel.empty(uid);
 
       final data = doc.data() as Map<String, dynamic>;
-      final totalMinutes = (data['totalMinutes'] as num?)?.toInt() ?? 0;
+      // Backward compatible:
+      // - old schema: totalMinutes + dailyMinutes
+      // - new schema: totalSeconds + dailySeconds
+      final totalSeconds = (data['totalSeconds'] as num?)?.toInt() ??
+          (((data['totalMinutes'] as num?)?.toInt() ?? 0) * 60);
+      final playCounts = Map<String, int>.from(
+        (data['trackPlayCounts'] as Map<String, dynamic>? ?? {})
+            .map((k, v) => MapEntry(k, (v as num).toInt())),
+      );
 
-      final rawDaily = data['dailyStats'] as List<dynamic>? ?? [];
-      final dailyStats = rawDaily
-          .map((e) =>
-              DailyListeningModel.fromMap(e as Map<String, dynamic>))
-          .toList();
+      // dailySeconds stored as { "2025-05-01": 1800, "2025-05-02": 2700, ... }
+      // (fallback to dailyMinutes * 60)
+      final rawDailySeconds =
+          data['dailySeconds'] as Map<String, dynamic>? ?? {};
+      final rawDailyMinutes =
+          data['dailyMinutes'] as Map<String, dynamic>? ?? {};
 
-      final playCounts = Map<String, int>.from(data['trackPlayCounts'] ?? {});
+      final dailyStats = <DailyListeningModel>[
+        ...rawDailySeconds.entries.map((e) {
+          return DailyListeningModel(
+            date: DateTime.parse(e.key),
+            seconds: (e.value as num).toInt(),
+          );
+        }),
+        ...rawDailyMinutes.entries.map((e) {
+          return DailyListeningModel(
+            date: DateTime.parse(e.key),
+            seconds: (e.value as num).toInt() * 60,
+          );
+        }),
+      ]
+        ..sort((a, b) => a.date.compareTo(b.date));
+
+      // Merge duplicates by date (if both seconds + minutes existed)
+      final merged = <String, int>{};
+      for (final d in dailyStats) {
+        final key = d.date.toIso8601String().substring(0, 10);
+        merged[key] = (merged[key] ?? 0) + d.seconds;
+      }
+
+      final mergedDaily = merged.entries.map((e) {
+        return DailyListeningModel(
+          date: DateTime.parse(e.key),
+          seconds: e.value,
+        );
+      }).toList()
+        ..sort((a, b) => a.date.compareTo(b.date));
 
       return ListeningStatsModel(
         userId: uid,
-        totalMinutes: totalMinutes,
-        dailyStats: dailyStats,
+        totalSeconds: totalSeconds,
+        dailyStats: mergedDaily,
         trackPlayCounts: playCounts,
       );
     } catch (_) {
@@ -57,25 +95,29 @@ class StatsRepository {
     }
   }
 
-  /// Record that a track was played for [minutes] minutes today
-  Future<void> recordListening({
+  // ─── Record Listening ─────────────────────────────────────────────────────
+
+  Future<void> recordListeningSeconds({
     required String uid,
     required TrackModel track,
-    required int minutesListened,
+    required int secondsListened,
   }) async {
-    if (minutesListened <= 0) return;
+    if (uid.trim().isEmpty || secondsListened <= 0) return;
 
-    final today = DateTime.now();
-    final dateKey = today.toIso8601String().substring(0, 10);
+    final dateKey = DateTime.now().toIso8601String().substring(0, 10);
 
-    await _statsDoc(uid).set(
-      {
-        'totalMinutes': FieldValue.increment(minutesListened),
-        'lastUpdated': FieldValue.serverTimestamp(),
-        'trackPlayCounts.${track.id}': FieldValue.increment(1),
-        'dailyMinutes.$dateKey': FieldValue.increment(minutesListened),
-      },
-      SetOptions(merge: true),
-    );
+    try {
+      await _statsDoc(uid).set(
+        {
+          'totalSeconds': FieldValue.increment(secondsListened),
+          'lastUpdated': FieldValue.serverTimestamp(),
+          'trackPlayCounts': {track.id: FieldValue.increment(1)},
+          'dailySeconds': {dateKey: FieldValue.increment(secondsListened)},
+        },
+        SetOptions(merge: true),
+      );
+    } catch (_) {
+      // Ignore transient write errors; dashboard will recover on next save.
+    }
   }
 }
