@@ -16,17 +16,15 @@ dependencies:
   cloud_firestore: ^4.15.5
 
   # Biometric Auth
-  local_auth: ^2.1.8
 
-  # Audio
+  # Audio (just_audio only - no background service)
   just_audio: ^0.9.36
-  just_audio_background: ^0.0.1-beta.11
-  audio_service: ^0.18.13
+
+  # Reactive streams
+  rxdart: ^0.27.7
 
   # State Management
   provider: ^6.1.2
-  riverpod: ^2.5.1
-  flutter_riverpod: ^2.5.1
 
   # HTTP / API
   dio: ^5.4.1
@@ -34,34 +32,23 @@ dependencies:
 
   # Local Storage
   shared_preferences: ^2.2.3
-  hive: ^2.2.3
-  hive_flutter: ^1.1.0
 
   # Charts
   fl_chart: ^0.67.0
 
   # UI / UX
-  flutter_svg: ^2.0.10+1
   cached_network_image: ^3.3.1
-  shimmer: ^3.0.0
-  lottie: ^3.1.0
   google_fonts: ^6.2.1
-
-  # Reactive streams
-  rxdart: ^0.27.7
 
   # Utils
   intl: ^0.19.0
   uuid: ^4.4.0
   equatable: ^2.0.5
-  dartz: ^0.10.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
-  hive_generator: ^2.0.1
-  build_runner: ^2.4.8
 
 flutter:
   uses-material-design: true

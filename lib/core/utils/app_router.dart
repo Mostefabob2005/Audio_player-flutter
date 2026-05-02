@@ -1,7 +1,6 @@
 // lib/core/utils/app_router.dart
 
 import 'package:flutter/material.dart';
-import '../../presentation/pages/biometric/biometric_page.dart';
 import '../../presentation/pages/auth/login_page.dart';
 import '../../presentation/pages/auth/register_page.dart';
 import '../../presentation/pages/auth/forgot_password_page.dart';
@@ -10,8 +9,7 @@ import '../../presentation/pages/player/player_page.dart';
 import '../../presentation/pages/favorites/favorites_page.dart';
 
 class AppRouter {
-  static const String biometric = '/';
-  static const String login = '/login';
+  static const String login = '/';
   static const String register = '/register';
   static const String forgotPassword = '/forgot-password';
   static const String home = '/home';
@@ -20,8 +18,6 @@ class AppRouter {
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
-      case biometric:
-        return _pageRoute(const BiometricPage());
       case login:
         return _pageRoute(const LoginPage());
       case register:
@@ -36,7 +32,7 @@ class AppRouter {
       case favorites:
         return _pageRoute(const FavoritesPage());
       default:
-        return _pageRoute(const BiometricPage());
+        return _pageRoute(const LoginPage());
     }
   }
 

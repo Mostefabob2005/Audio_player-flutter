@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../../core/utils/app_router.dart';
+import '../../../core/utils/result.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/utils/result.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/common/loading_overlay.dart';
 
@@ -24,21 +24,20 @@ class _RegisterPageState extends State<RegisterPage> {
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _confirmPasswordCtrl = TextEditingController();
+  // Controller dédié pour afficher la date
+  final _dateCtrl = TextEditingController();
   DateTime? _dateOfBirth;
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
 
   @override
   void dispose() {
-    for (final c in [
-      _firstNameCtrl,
-      _lastNameCtrl,
-      _emailCtrl,
-      _passwordCtrl,
-      _confirmPasswordCtrl
-    ]) {
-      c.dispose();
-    }
+    _firstNameCtrl.dispose();
+    _lastNameCtrl.dispose();
+    _emailCtrl.dispose();
+    _passwordCtrl.dispose();
+    _confirmPasswordCtrl.dispose();
+    _dateCtrl.dispose();
     super.dispose();
   }
 
@@ -48,8 +47,23 @@ class _RegisterPageState extends State<RegisterPage> {
       initialDate: DateTime.now().subtract(const Duration(days: 365 * 18)),
       firstDate: DateTime(1920),
       lastDate: DateTime.now(),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: AppTheme.primaryColor,
+            surface: AppTheme.cardDark,
+          ),
+        ),
+        child: child!,
+      ),
     );
-    if (picked != null) setState(() => _dateOfBirth = picked);
+    if (picked != null) {
+      setState(() {
+        _dateOfBirth = picked;
+        // Mettre à jour le controller pour afficher la date dans le champ
+        _dateCtrl.text = DateFormat('dd/MM/yyyy').format(picked);
+      });
+    }
   }
 
   Future<void> _submit() async {
@@ -57,7 +71,10 @@ class _RegisterPageState extends State<RegisterPage> {
 
     if (_dateOfBirth == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select your date of birth')),
+        const SnackBar(
+          content: Text('Please select your date of birth'),
+          backgroundColor: AppTheme.errorColor,
+        ),
       );
       return;
     }
@@ -121,22 +138,17 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Date of Birth
-                  GestureDetector(
+                  // Date of Birth — avec TextEditingController pour afficher la date
+                  TextFormField(
+                    controller: _dateCtrl,
+                    readOnly: true,
                     onTap: _pickDate,
-                    child: AbsorbPointer(
-                      child: TextFormField(
-                        decoration: InputDecoration(
-                          labelText: 'Date of Birth',
-                          prefixIcon: const Icon(Icons.calendar_today_outlined),
-                          hintText: _dateOfBirth == null
-                              ? 'Select date'
-                              : DateFormat('dd/MM/yyyy').format(_dateOfBirth!),
-                        ),
-                        validator: (_) =>
-                            Validators.dateOfBirth(_dateOfBirth),
-                      ),
+                    decoration: const InputDecoration(
+                      labelText: 'Date of Birth',
+                      hintText: 'Select your date of birth',
+                      prefixIcon: Icon(Icons.calendar_today_outlined),
                     ),
+                    validator: (_) => Validators.dateOfBirth(_dateOfBirth),
                   ),
                   const SizedBox(height: 16),
 

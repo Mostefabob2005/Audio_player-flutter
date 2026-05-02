@@ -47,9 +47,12 @@ class AuthService {
 
       return Success(user);
     } on FirebaseAuthException catch (e) {
-      return Failure(_mapAuthError(e.code), error: e);
+      return Failure(_mapAuthError(e.code, e.message), error: e);
     } catch (e) {
-      return Failure('Sign up failed. Please try again.', error: e);
+      return Failure(
+        'Registration failed: ${e.toString().replaceAll(RegExp(r'\[.*?\]'), '').trim()}',
+        error: e,
+      );
     }
   }
 
@@ -76,7 +79,7 @@ class AuthService {
 
       return Success(UserModel.fromFirestore(userDoc));
     } on FirebaseAuthException catch (e) {
-      return Failure(_mapAuthError(e.code), error: e);
+      return Failure(_mapAuthError(e.code, e.message), error: e);
     } catch (e) {
       return Failure('Sign in failed. Please try again.', error: e);
     }
@@ -89,7 +92,7 @@ class AuthService {
       await _auth.sendPasswordResetEmail(email: email);
       return const Success(null);
     } on FirebaseAuthException catch (e) {
-      return Failure(_mapAuthError(e.code), error: e);
+      return Failure(_mapAuthError(e.code, e.message), error: e);
     }
   }
 
@@ -117,15 +120,20 @@ class AuthService {
 
   // ─── Error Mapping ────────────────────────────────────────────────────────
 
-  String _mapAuthError(String code) => switch (code) {
+  String _mapAuthError(String code, String? message) => switch (code) {
         'email-already-in-use' => 'This email is already registered',
         'invalid-email' => 'Invalid email address',
-        'weak-password' => 'Password is too weak',
+        'weak-password' => 'Password is too weak (min 6 characters)',
         'user-not-found' => 'No account found with this email',
         'wrong-password' => 'Incorrect password',
+        'invalid-credential' => 'Incorrect email or password',
         'user-disabled' => 'This account has been disabled',
         'too-many-requests' => 'Too many attempts. Please try again later',
         'network-request-failed' => 'Network error. Check your connection',
-        _ => 'Authentication error: $code',
+        'operation-not-allowed' =>
+          'Email/password sign-in is not enabled. Please contact support.',
+        'unknown' =>
+          'Connection error. Check your internet and try again.',
+        _ => message ?? 'Authentication error ($code)',
       };
 }

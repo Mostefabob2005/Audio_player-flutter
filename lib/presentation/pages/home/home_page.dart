@@ -96,7 +96,7 @@ class _HomePageState extends State<HomePage> {
                 Navigator.pop(ctx);
                 await ctx.read<AuthProvider>().signOut();
                 if (ctx.mounted) {
-                  Navigator.pushReplacementNamed(ctx, AppRouter.biometric);
+                  Navigator.pushReplacementNamed(ctx, AppRouter.login);
                 }
               },
             ),

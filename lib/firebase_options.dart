@@ -4,16 +4,6 @@ import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
-/// Default [FirebaseOptions] for use with your Firebase apps.
-///
-/// Example:
-/// ```dart
-/// import 'firebase_options.dart';
-/// // ...
-/// await Firebase.initializeApp(
-///   options: DefaultFirebaseOptions.currentPlatform,
-/// );
-/// ```
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
@@ -30,8 +20,7 @@ class DefaultFirebaseOptions {
         return windows;
       case TargetPlatform.linux:
         throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for linux - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
+          'DefaultFirebaseOptions have not been configured for linux.',
         );
       default:
         throw UnsupportedError(
@@ -40,49 +29,50 @@ class DefaultFirebaseOptions {
     }
   }
 
-  static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyAeysTMAPygHwLEn9E77BgQmTKoDn7X4j4',
-    appId: '1:179706745788:web:6af3c93bc32ed19e74d1b9',
-    messagingSenderId: '179706745788',
-    projectId: 'audio-player-c0813',
-    authDomain: 'audio-player-c0813.firebaseapp.com',
-    storageBucket: 'audio-player-c0813.firebasestorage.app',
-    measurementId: 'G-K68F7ZF3E4',
-  );
-
+  // ─── Android (from google-services.json) ──────────────────────────────────
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyA1Q1pQqBw7bp4hpOFL3uMkxRY8MyIXyUw',
-    appId: '1:179706745788:android:3f57bef9af6ed50874d1b9',
-    messagingSenderId: '179706745788',
-    projectId: 'audio-player-c0813',
-    storageBucket: 'audio-player-c0813.firebasestorage.app',
+    apiKey: 'AIzaSyBcdsHFRRH6pODUzum5_SWbzKWGWvwZbHU',
+    appId: '1:83889955513:android:536366e2e5cac62a02b168',
+    messagingSenderId: '83889955513',
+    projectId: 'audio-e89f0',
+    storageBucket: 'audio-e89f0.firebasestorage.app',
   );
 
+  // ─── Web (fallback — same project) ────────────────────────────────────────
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyBcdsHFRRH6pODUzum5_SWbzKWGWvwZbHU',
+    appId: '1:83889955513:android:536366e2e5cac62a02b168',
+    messagingSenderId: '83889955513',
+    projectId: 'audio-e89f0',
+    storageBucket: 'audio-e89f0.firebasestorage.app',
+    authDomain: 'audio-e89f0.firebaseapp.com',
+  );
+
+  // ─── iOS (fallback — same project) ────────────────────────────────────────
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyBoRRo-bvgK68r80JleqmbFUZ6w_pSgDTY',
-    appId: '1:179706745788:ios:f5e4d1112f7f750c74d1b9',
-    messagingSenderId: '179706745788',
-    projectId: 'audio-player-c0813',
-    storageBucket: 'audio-player-c0813.firebasestorage.app',
-    iosBundleId: 'com.example.audioPlayer',
+    apiKey: 'AIzaSyBcdsHFRRH6pODUzum5_SWbzKWGWvwZbHU',
+    appId: '1:83889955513:android:536366e2e5cac62a02b168',
+    messagingSenderId: '83889955513',
+    projectId: 'audio-e89f0',
+    storageBucket: 'audio-e89f0.firebasestorage.app',
+    iosBundleId: 'com.example.audio_player',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyBoRRo-bvgK68r80JleqmbFUZ6w_pSgDTY',
-    appId: '1:179706745788:ios:f5e4d1112f7f750c74d1b9',
-    messagingSenderId: '179706745788',
-    projectId: 'audio-player-c0813',
-    storageBucket: 'audio-player-c0813.firebasestorage.app',
-    iosBundleId: 'com.example.audioPlayer',
+    apiKey: 'AIzaSyBcdsHFRRH6pODUzum5_SWbzKWGWvwZbHU',
+    appId: '1:83889955513:android:536366e2e5cac62a02b168',
+    messagingSenderId: '83889955513',
+    projectId: 'audio-e89f0',
+    storageBucket: 'audio-e89f0.firebasestorage.app',
+    iosBundleId: 'com.example.audio_player',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyAeysTMAPygHwLEn9E77BgQmTKoDn7X4j4',
-    appId: '1:179706745788:web:043d498da802094774d1b9',
-    messagingSenderId: '179706745788',
-    projectId: 'audio-player-c0813',
-    authDomain: 'audio-player-c0813.firebaseapp.com',
-    storageBucket: 'audio-player-c0813.firebasestorage.app',
-    measurementId: 'G-RDVY15V8TD',
+    apiKey: 'AIzaSyBcdsHFRRH6pODUzum5_SWbzKWGWvwZbHU',
+    appId: '1:83889955513:android:536366e2e5cac62a02b168',
+    messagingSenderId: '83889955513',
+    projectId: 'audio-e89f0',
+    storageBucket: 'audio-e89f0.firebasestorage.app',
+    authDomain: 'audio-e89f0.firebaseapp.com',
   );
 }

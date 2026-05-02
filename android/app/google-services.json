@@ -1,26 +1,36 @@
 {
   "project_info": {
-    "project_number": "179706745788",
-    "project_id": "audio-player-c0813",
-    "storage_bucket": "audio-player-c0813.firebasestorage.app"
+    "project_number": "83889955513",
+    "project_id": "audio-e89f0",
+    "storage_bucket": "audio-e89f0.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:179706745788:android:3f57bef9af6ed50874d1b9",
+        "mobilesdk_app_id": "1:83889955513:android:536366e2e5cac62a02b168",
         "android_client_info": {
           "package_name": "com.example.audio_player"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "83889955513-abrfacogn9kuqtnlgldfvc7mscuk992t.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyA1Q1pQqBw7bp4hpOFL3uMkxRY8MyIXyUw"
+          "current_key": "AIzaSyBcdsHFRRH6pODUzum5_SWbzKWGWvwZbHU"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "83889955513-abrfacogn9kuqtnlgldfvc7mscuk992t.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

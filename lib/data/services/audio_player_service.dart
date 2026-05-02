@@ -1,7 +1,6 @@
 // lib/data/services/audio_player_service.dart
 
 import 'package:just_audio/just_audio.dart';
-import 'package:just_audio_background/just_audio_background.dart';
 import 'package:rxdart/rxdart.dart';
 import '../models/track_model.dart';
 
@@ -48,22 +47,13 @@ class AudioPlayerService {
     if (playlist != null) _playlist = playlist;
 
     await _player.setAudioSource(
-      AudioSource.uri(
-        Uri.parse(track.audioUrl),
-        tag: MediaItem(
-          id: track.id,
-          title: track.title,
-          album: track.category,
-          artUri: track.imageUrl != null ? Uri.parse(track.imageUrl!) : null,
-        ),
-      ),
+      AudioSource.uri(Uri.parse(track.audioUrl)),
     );
   }
 
   Future<void> play() => _player.play();
   Future<void> pause() => _player.pause();
   Future<void> stop() => _player.stop();
-
   Future<void> seek(Duration position) => _player.seek(position);
 
   Future<void> seekForward() async {
