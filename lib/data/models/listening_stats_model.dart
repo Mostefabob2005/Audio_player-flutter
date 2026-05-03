@@ -2,44 +2,44 @@
 
 class DailyListeningModel {
   final DateTime date;
-  final int seconds;
+  final int minutes;
 
-  const DailyListeningModel({required this.date, required this.seconds});
+  const DailyListeningModel({required this.date, required this.minutes});
 
   factory DailyListeningModel.fromMap(Map<String, dynamic> map) =>
       DailyListeningModel(
         date: DateTime.parse(map['date'] as String),
-        seconds: map['seconds'] as int,
+        minutes: map['minutes'] as int,
       );
 
   Map<String, dynamic> toMap() => {
         'date': date.toIso8601String().substring(0, 10),
-        'seconds': seconds,
+        'minutes': minutes,
       };
 }
 
 class ListeningStatsModel {
   final String userId;
-  final int totalSeconds;
+  final int totalMinutes;
   final List<DailyListeningModel> dailyStats;
   final Map<String, int> trackPlayCounts; // trackId -> count
 
   const ListeningStatsModel({
     required this.userId,
-    required this.totalSeconds,
+    required this.totalMinutes,
     required this.dailyStats,
     required this.trackPlayCounts,
   });
 
-  int get totalHours => totalSeconds ~/ 3600;
-  int get remainingMinutes => (totalSeconds % 3600) ~/ 60;
+  int get totalHours => totalMinutes ~/ 60;
+  int get remainingMinutes => totalMinutes % 60;
 
   /// Minutes listened in the current month
   int get currentMonthMinutes {
     final now = DateTime.now();
     return dailyStats
         .where((d) => d.date.year == now.year && d.date.month == now.month)
-        .fold(0, (sum, d) => sum + (d.seconds ~/ 60));
+        .fold(0, (sum, d) => sum + d.minutes);
   }
 
   /// Daily stats for current month, padded for all days
@@ -53,7 +53,7 @@ class ListeningStatsModel {
         (d) => d.date.year == date.year &&
                d.date.month == date.month &&
                d.date.day == date.day,
-        orElse: () => DailyListeningModel(date: date, seconds: 0),
+        orElse: () => DailyListeningModel(date: date, minutes: 0),
       );
       return found;
     });
@@ -61,7 +61,7 @@ class ListeningStatsModel {
 
   factory ListeningStatsModel.empty(String userId) => ListeningStatsModel(
         userId: userId,
-        totalSeconds: 0,
+        totalMinutes: 0,
         dailyStats: [],
         trackPlayCounts: {},
       );

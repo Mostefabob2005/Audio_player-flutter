@@ -1,78 +1,96 @@
 // lib/data/services/quran_api_service.dart
 
 import 'package:dio/dio.dart';
+import '../../core/constants/app_constants.dart';
 import '../../core/utils/result.dart';
 import '../models/track_model.dart';
 
 class QuranApiService {
   late final Dio _dio;
 
-  static const String _baseUrl = 'https://quran.yousefheiba.com';
-
   QuranApiService() {
     _dio = Dio(
       BaseOptions(
-        baseUrl: _baseUrl,
+        baseUrl: AppConstants.quranApiBaseUrl,
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 15),
         headers: {'Accept': 'application/json'},
       ),
     );
+    _dio.interceptors.add(LogInterceptor(responseBody: false));
   }
 
-  /// Fetch all 114 surahs and group them by type (Meccan / Medinan)
-  Future<Result<List<CategoryModel>>> fetchCategoriesWithTracks() async {
+  /// Fetch all surahs (categories)
+  Future<Result<List<CategoryModel>>> fetchCategories() async {
     try {
       final response = await _dio.get('/api/surahs');
+      final List<dynamic> data = response.data['data'] ?? response.data;
 
-      // API returns a plain JSON array
-      final List<dynamic> rawList = response.data is List
-          ? response.data as List
-          : (response.data['data'] as List? ?? []);
-
-      final tracks = rawList
-          .map((json) =>
-              TrackModel.fromSurahApi(json as Map<String, dynamic>))
+      final categories = data
+          .map((json) => CategoryModel.fromApi(json as Map<String, dynamic>))
           .toList();
-
-      // Group by type: Meccan / Medinan
-      final meccan = tracks.where((t) => t.type == 'Meccan').toList();
-      final medinan = tracks.where((t) => t.type == 'Medinan').toList();
-      final other =
-          tracks.where((t) => t.type != 'Meccan' && t.type != 'Medinan').toList();
-
-      final categories = <CategoryModel>[
-        CategoryModel(id: 'meccan', name: 'Meccan Surahs', tracks: meccan),
-        CategoryModel(id: 'medinan', name: 'Medinan Surahs', tracks: medinan),
-        if (other.isNotEmpty)
-          CategoryModel(id: 'other', name: 'Other', tracks: other),
-      ];
 
       return Success(categories);
     } on DioException catch (e) {
       return Failure(_mapDioError(e), error: e);
-    } catch (e) {
-      return Failure('Failed to load surahs: $e', error: e);
     }
   }
 
-  /// All tracks as flat list (for player playlist)
-  Future<Result<List<TrackModel>>> fetchAllTracks() async {
+  /// Fetch recitations for a specific surah/category
+  Future<Result<List<TrackModel>>> fetchTracksForCategory({
+    required String categoryId,
+    required String categoryName,
+    int reciterId = 1, // default reciter
+  }) async {
     try {
-      final response = await _dio.get('/api/surahs');
-      final List<dynamic> rawList = response.data is List
-          ? response.data as List
-          : (response.data['data'] as List? ?? []);
+      final response = await _dio.get(
+        '/api/recitations/$reciterId/by_chapter/$categoryId',
+      );
 
-      final tracks = rawList
-          .map((json) =>
-              TrackModel.fromSurahApi(json as Map<String, dynamic>))
+      final List<dynamic> data =
+          response.data['audio_files'] ?? response.data['data'] ?? [];
+
+      final tracks = data
+          .map((json) => TrackModel.fromApi(
+                json as Map<String, dynamic>,
+                categoryName,
+              ))
           .toList();
 
       return Success(tracks);
     } on DioException catch (e) {
       return Failure(_mapDioError(e), error: e);
     }
+  }
+
+  /// Fetch all categories with their tracks (for first load)
+  Future<Result<List<CategoryModel>>> fetchAllWithTracks({
+    int reciterId = 1,
+  }) async {
+    final categoriesResult = await fetchCategories();
+    if (categoriesResult is Failure<List<CategoryModel>>) {
+      return categoriesResult;
+    }
+
+    final categories = (categoriesResult as Success<List<CategoryModel>>).data;
+    final enriched = <CategoryModel>[];
+
+    for (final cat in categories) {
+      final tracksResult = await fetchTracksForCategory(
+        categoryId: cat.id,
+        categoryName: cat.name,
+        reciterId: reciterId,
+      );
+      enriched.add(
+        cat.copyWithTracks(
+          tracksResult is Success<List<TrackModel>>
+              ? tracksResult.data
+              : [],
+        ),
+      );
+    }
+
+    return Success(enriched);
   }
 
   String _mapDioError(DioException e) => switch (e.type) {

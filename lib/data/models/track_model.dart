@@ -5,40 +5,34 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class TrackModel {
   final String id;
   final String title;
-  final String titleAr;
-  final String category;      // surah name in English
-  final String categoryId;    // surah number
+  final String category;
+  final String categoryId;
   final String audioUrl;
-  final String type;          // Meccan / Medinan
-  final int ayatCount;
+  final String? imageUrl;
   final Duration? duration;
+  final Map<String, dynamic>? extra;
 
   const TrackModel({
     required this.id,
     required this.title,
-    required this.titleAr,
     required this.category,
     required this.categoryId,
     required this.audioUrl,
-    required this.type,
-    required this.ayatCount,
+    this.imageUrl,
     this.duration,
+    this.extra,
   });
 
-  /// Build from /api/surahs item
-  /// Audio URL pattern: https://cdn.islamic.network/quran/audio/128/ar.alafasy/{number}.mp3
-  factory TrackModel.fromSurahApi(Map<String, dynamic> json) {
-    final number = json['number']?.toString() ?? json['id']?.toString() ?? '1';
+  /// Build from Quran API response
+  factory TrackModel.fromApi(Map<String, dynamic> json, String categoryName) {
     return TrackModel(
-      id: 'surah_$number',
-      title: json['name_en'] as String? ?? '',
-      titleAr: json['name_ar'] as String? ?? '',
-      category: json['type'] as String? ?? '',
-      categoryId: number,
-      audioUrl:
-          'https://cdn.islamic.network/quran/audio-surah/128/ar.alafasy/$number.mp3',
-      type: json['type'] as String? ?? '',
-      ayatCount: int.tryParse(json['ayat_count']?.toString() ?? '0') ?? 0,
+      id: json['id']?.toString() ?? '',
+      title: json['name'] ?? json['title'] ?? '',
+      category: categoryName,
+      categoryId: json['surah_id']?.toString() ?? json['chapter_id']?.toString() ?? '',
+      audioUrl: json['audio'] ?? json['url'] ?? '',
+      imageUrl: null,
+      extra: json,
     );
   }
 
@@ -47,12 +41,10 @@ class TrackModel {
     return TrackModel(
       id: data['id'] as String,
       title: data['title'] as String,
-      titleAr: data['titleAr'] as String? ?? '',
       category: data['category'] as String,
       categoryId: data['categoryId'] as String,
       audioUrl: data['audioUrl'] as String,
-      type: data['type'] as String? ?? '',
-      ayatCount: data['ayatCount'] as int? ?? 0,
+      imageUrl: data['imageUrl'] as String?,
       duration: data['durationMs'] != null
           ? Duration(milliseconds: data['durationMs'] as int)
           : null,
@@ -62,12 +54,10 @@ class TrackModel {
   Map<String, dynamic> toFirestore() => {
         'id': id,
         'title': title,
-        'titleAr': titleAr,
         'category': category,
         'categoryId': categoryId,
         'audioUrl': audioUrl,
-        'type': type,
-        'ayatCount': ayatCount,
+        'imageUrl': imageUrl,
         'durationMs': duration?.inMilliseconds,
         'addedAt': FieldValue.serverTimestamp(),
       };
@@ -80,21 +70,34 @@ class TrackModel {
   int get hashCode => id.hashCode;
 }
 
-/// Groups surahs by type: Meccan / Medinan
+
+/// Groups tracks by category
 class CategoryModel {
   final String id;
   final String name;
+  final String? description;
   final List<TrackModel> tracks;
 
   const CategoryModel({
     required this.id,
     required this.name,
+    this.description,
     this.tracks = const [],
   });
+
+  factory CategoryModel.fromApi(Map<String, dynamic> json) {
+    return CategoryModel(
+      id: json['id']?.toString() ?? '',
+      name: json['name'] ?? json['englishName'] ?? '',
+      description: json['englishNameTranslation'] as String?,
+      tracks: [],
+    );
+  }
 
   CategoryModel copyWithTracks(List<TrackModel> tracks) => CategoryModel(
         id: id,
         name: name,
+        description: description,
         tracks: tracks,
       );
 }

@@ -16,25 +16,15 @@ class StatsTab extends StatefulWidget {
   State<StatsTab> createState() => _StatsTabState();
 }
 
-class _StatsTabState extends State<StatsTab> with AutomaticKeepAliveClientMixin {
+class _StatsTabState extends State<StatsTab> {
   final StatsRepository _statsRepo = StatsRepository();
   ListeningStatsModel? _stats;
   int _monthlyGoal = AppConstants.defaultMonthlyGoalHours;
   bool _isLoading = true;
 
   @override
-  bool get wantKeepAlive => false; // Always reload when switching tabs
-
-  @override
   void initState() {
     super.initState();
-    _loadData();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Reload whenever this tab becomes active
     _loadData();
   }
 
@@ -61,14 +51,17 @@ class _StatsTabState extends State<StatsTab> with AutomaticKeepAliveClientMixin 
 
   @override
   Widget build(BuildContext context) {
-    super.build(context);
     final user = context.watch<AuthProvider>().user;
 
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor));
+      return const Center(child: CircularProgressIndicator());
     }
 
-    final stats = _stats ?? ListeningStatsModel.empty('');
+    if (_stats == null) {
+      return const Center(child: Text('No stats available'));
+    }
+
+    final stats = _stats!;
     final monthMinutes = stats.currentMonthMinutes;
     final monthHours = monthMinutes / 60.0;
     final progress = (monthHours / _monthlyGoal).clamp(0.0, 1.0);
@@ -76,7 +69,6 @@ class _StatsTabState extends State<StatsTab> with AutomaticKeepAliveClientMixin 
 
     return RefreshIndicator(
       onRefresh: _loadData,
-      color: AppTheme.primaryColor,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(20),
@@ -103,17 +95,10 @@ class _StatsTabState extends State<StatsTab> with AutomaticKeepAliveClientMixin 
 
             // Total Listening Card
             _StatCard(
-              icon: Icons.headphones_rounded,
+              icon: Icons.headphones,
               label: 'Total Listening Time',
-              value: '${stats.totalHours}h ${stats.remainingMinutes}m',
-            ),
-            const SizedBox(height: 12),
-
-            // This month card
-            _StatCard(
-              icon: Icons.calendar_month_rounded,
-              label: 'This Month',
-              value: '${monthHours.toStringAsFixed(1)}h',
+              value:
+                  '${stats.totalHours}h ${stats.remainingMinutes}m',
             ),
             const SizedBox(height: 16),
 
@@ -142,32 +127,19 @@ class _StatsTabState extends State<StatsTab> with AutomaticKeepAliveClientMixin 
                       borderRadius: BorderRadius.circular(8),
                       child: LinearProgressIndicator(
                         value: progress,
-                        minHeight: 12,
+                        minHeight: 10,
                         backgroundColor: AppTheme.backgroundDark,
                         valueColor: const AlwaysStoppedAnimation(
                             AppTheme.primaryColor),
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          '${monthHours.toStringAsFixed(1)}h / ${_monthlyGoal}h',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppTheme.onSurfaceVariant,
-                              ),
-                        ),
-                        Text(
-                          '${(progress * 100).toStringAsFixed(0)}%',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: progress >= 1.0
-                                    ? AppTheme.primaryColor
-                                    : AppTheme.onSurfaceVariant,
-                                fontWeight: FontWeight.bold,
-                              ),
-                        ),
-                      ],
+                    Text(
+                      '${monthHours.toStringAsFixed(1)}h / ${_monthlyGoal}h '
+                      '(${(progress * 100).toStringAsFixed(0)}%)',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppTheme.onSurfaceVariant,
+                          ),
                     ),
                   ],
                 ),
@@ -183,28 +155,13 @@ class _StatsTabState extends State<StatsTab> with AutomaticKeepAliveClientMixin 
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Minutes per Day — This Month',
+                      'This Month – Minutes per Day',
                       style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Pull down to refresh',
-                      style: TextStyle(
-                          fontSize: 11, color: AppTheme.onSurfaceVariant),
                     ),
                     const SizedBox(height: 16),
                     SizedBox(
                       height: 180,
-                      child: dailyData.every((d) => d.seconds == 0)
-                          ? const Center(
-                              child: Text(
-                                'No listening data yet.\nPlay a surah to start tracking!',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                    color: AppTheme.onSurfaceVariant),
-                              ),
-                            )
-                          : _DailyBarChart(dailyData: dailyData),
+                      child: _DailyBarChart(dailyData: dailyData),
                     ),
                   ],
                 ),
@@ -224,7 +181,11 @@ class _StatCard extends StatelessWidget {
   final String label;
   final String value;
 
-  const _StatCard({required this.icon, required this.label, required this.value});
+  const _StatCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -276,7 +237,7 @@ class _GoalDropdown extends StatelessWidget {
       value: value,
       underline: const SizedBox(),
       dropdownColor: AppTheme.cardDark,
-      style: const TextStyle(color: AppTheme.primaryColor),
+      style: TextStyle(color: AppTheme.primaryColor),
       items: AppConstants.goalOptions
           .map((h) => DropdownMenuItem(value: h, child: Text('$h h')))
           .toList(),
@@ -292,27 +253,23 @@ class _DailyBarChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final maxMinutes =
-        dailyData.map((d) => d.seconds ~/ 60).fold(0, (a, b) => a > b ? a : b);
-    final maxY = (maxMinutes * 1.3).clamp(10.0, double.infinity).toDouble();
+    final maxY = dailyData.isEmpty
+        ? 60.0
+        : (dailyData.map((d) => d.minutes).reduce((a, b) => a > b ? a : b) *
+                    1.2)
+                .toDouble()
+            .clamp(10.0, double.infinity);
 
     return BarChart(
       BarChartData(
         maxY: maxY,
-        barTouchData: BarTouchData(
-          enabled: true,
-          touchTooltipData: BarTouchTooltipData(
-            getTooltipItem: (group, _, rod, __) => BarTooltipItem(
-              '${rod.toY.toInt()} min',
-              const TextStyle(color: Colors.white, fontSize: 11),
-            ),
-          ),
-        ),
+        barTouchData: BarTouchData(enabled: false),
         titlesData: FlTitlesData(
+          show: true,
           leftTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              reservedSize: 32,
+              reservedSize: 28,
               getTitlesWidget: (value, _) => Text(
                 value.toInt().toString(),
                 style: const TextStyle(
@@ -325,7 +282,7 @@ class _DailyBarChart extends StatelessWidget {
               showTitles: true,
               getTitlesWidget: (value, _) {
                 final idx = value.toInt();
-                if ((idx + 1) % 5 != 0) return const SizedBox();
+                if (idx % 5 != 0) return const SizedBox();
                 return Text(
                   '${idx + 1}',
                   style: const TextStyle(
@@ -335,26 +292,26 @@ class _DailyBarChart extends StatelessWidget {
             ),
           ),
           topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
         ),
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,
-          getDrawingHorizontalLine: (_) =>
-              const FlLine(color: AppTheme.cardDark, strokeWidth: 1),
+          getDrawingHorizontalLine: (_) => const FlLine(
+            color: AppTheme.cardDark,
+            strokeWidth: 1,
+          ),
         ),
         borderData: FlBorderData(show: false),
         barGroups: List.generate(dailyData.length, (i) {
-          final minutes = (dailyData[i].seconds ~/ 60).toDouble();
           return BarChartGroupData(
             x: i,
             barRods: [
               BarChartRodData(
-                toY: minutes,
-                color: minutes > 0
-                    ? AppTheme.primaryColor
-                    : AppTheme.cardDark,
-                width: 8,
+                toY: dailyData[i].minutes.toDouble(),
+                color: AppTheme.primaryColor,
+                width: 6,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(4),
                   topRight: Radius.circular(4),

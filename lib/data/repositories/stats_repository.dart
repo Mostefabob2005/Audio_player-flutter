@@ -28,7 +28,7 @@ class StatsRepository {
     await prefs.setInt(AppConstants.keyMonthlyGoalHours, hours);
   }
 
-  // ─── Fetch Stats ──────────────────────────────────────────────────────────
+  // ─── Listening Stats ──────────────────────────────────────────────────────
 
   Future<ListeningStatsModel> fetchStats(String uid) async {
     try {
@@ -36,58 +36,20 @@ class StatsRepository {
       if (!doc.exists) return ListeningStatsModel.empty(uid);
 
       final data = doc.data() as Map<String, dynamic>;
-      // Backward compatible:
-      // - old schema: totalMinutes + dailyMinutes
-      // - new schema: totalSeconds + dailySeconds
-      final totalSeconds = (data['totalSeconds'] as num?)?.toInt() ??
-          (((data['totalMinutes'] as num?)?.toInt() ?? 0) * 60);
-      final playCounts = Map<String, int>.from(
-        (data['trackPlayCounts'] as Map<String, dynamic>? ?? {})
-            .map((k, v) => MapEntry(k, (v as num).toInt())),
-      );
+      final totalMinutes = (data['totalMinutes'] as num?)?.toInt() ?? 0;
 
-      // dailySeconds stored as { "2025-05-01": 1800, "2025-05-02": 2700, ... }
-      // (fallback to dailyMinutes * 60)
-      final rawDailySeconds =
-          data['dailySeconds'] as Map<String, dynamic>? ?? {};
-      final rawDailyMinutes =
-          data['dailyMinutes'] as Map<String, dynamic>? ?? {};
+      final rawDaily = data['dailyStats'] as List<dynamic>? ?? [];
+      final dailyStats = rawDaily
+          .map((e) =>
+              DailyListeningModel.fromMap(e as Map<String, dynamic>))
+          .toList();
 
-      final dailyStats = <DailyListeningModel>[
-        ...rawDailySeconds.entries.map((e) {
-          return DailyListeningModel(
-            date: DateTime.parse(e.key),
-            seconds: (e.value as num).toInt(),
-          );
-        }),
-        ...rawDailyMinutes.entries.map((e) {
-          return DailyListeningModel(
-            date: DateTime.parse(e.key),
-            seconds: (e.value as num).toInt() * 60,
-          );
-        }),
-      ]
-        ..sort((a, b) => a.date.compareTo(b.date));
-
-      // Merge duplicates by date (if both seconds + minutes existed)
-      final merged = <String, int>{};
-      for (final d in dailyStats) {
-        final key = d.date.toIso8601String().substring(0, 10);
-        merged[key] = (merged[key] ?? 0) + d.seconds;
-      }
-
-      final mergedDaily = merged.entries.map((e) {
-        return DailyListeningModel(
-          date: DateTime.parse(e.key),
-          seconds: e.value,
-        );
-      }).toList()
-        ..sort((a, b) => a.date.compareTo(b.date));
+      final playCounts = Map<String, int>.from(data['trackPlayCounts'] ?? {});
 
       return ListeningStatsModel(
         userId: uid,
-        totalSeconds: totalSeconds,
-        dailyStats: mergedDaily,
+        totalMinutes: totalMinutes,
+        dailyStats: dailyStats,
         trackPlayCounts: playCounts,
       );
     } catch (_) {
@@ -95,29 +57,25 @@ class StatsRepository {
     }
   }
 
-  // ─── Record Listening ─────────────────────────────────────────────────────
-
-  Future<void> recordListeningSeconds({
+  /// Record that a track was played for [minutes] minutes today
+  Future<void> recordListening({
     required String uid,
     required TrackModel track,
-    required int secondsListened,
+    required int minutesListened,
   }) async {
-    if (uid.trim().isEmpty || secondsListened <= 0) return;
+    if (minutesListened <= 0) return;
 
-    final dateKey = DateTime.now().toIso8601String().substring(0, 10);
+    final today = DateTime.now();
+    final dateKey = today.toIso8601String().substring(0, 10);
 
-    try {
-      await _statsDoc(uid).set(
-        {
-          'totalSeconds': FieldValue.increment(secondsListened),
-          'lastUpdated': FieldValue.serverTimestamp(),
-          'trackPlayCounts': {track.id: FieldValue.increment(1)},
-          'dailySeconds': {dateKey: FieldValue.increment(secondsListened)},
-        },
-        SetOptions(merge: true),
-      );
-    } catch (_) {
-      // Ignore transient write errors; dashboard will recover on next save.
-    }
+    await _statsDoc(uid).set(
+      {
+        'totalMinutes': FieldValue.increment(minutesListened),
+        'lastUpdated': FieldValue.serverTimestamp(),
+        'trackPlayCounts.${track.id}': FieldValue.increment(1),
+        'dailyMinutes.$dateKey': FieldValue.increment(minutesListened),
+      },
+      SetOptions(merge: true),
+    );
   }
 }
