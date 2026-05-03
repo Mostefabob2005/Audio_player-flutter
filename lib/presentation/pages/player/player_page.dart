@@ -12,7 +12,6 @@ import '../../widgets/player/seek_bar.dart';
 
 class PlayerPage extends StatelessWidget {
   final Map<String, dynamic>? initialArgs;
-
   const PlayerPage({super.key, this.initialArgs});
 
   @override
@@ -26,18 +25,22 @@ class PlayerPage extends StatelessWidget {
     }
 
     return Scaffold(
+      backgroundColor: AppTheme.backgroundDark,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.keyboard_arrow_down),
+          icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 32),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text('Now Playing'),
+        centerTitle: true,
         actions: [
           IconButton(
             icon: Icon(
               audioProvider.isFavorite(track.id)
-                  ? Icons.favorite
-                  : Icons.favorite_outline,
+                  ? Icons.favorite_rounded
+                  : Icons.favorite_outline_rounded,
               color: audioProvider.isFavorite(track.id)
                   ? AppTheme.primaryColor
                   : null,
@@ -53,54 +56,82 @@ class PlayerPage extends StatelessWidget {
             children: [
               const Spacer(),
 
-              // Album Art
+              // Surah artwork — decorative circle with number
               Container(
-                width: 260,
-                height: 260,
+                width: 240,
+                height: 240,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  color: AppTheme.cardDark,
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      AppTheme.primaryColor.withOpacity(0.3),
+                      AppTheme.cardDark,
+                    ],
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.primaryColor.withOpacity(0.3),
-                      blurRadius: 40,
-                      offset: const Offset(0, 20),
+                      color: AppTheme.primaryColor.withOpacity(0.25),
+                      blurRadius: 60,
+                      spreadRadius: 10,
                     ),
                   ],
                 ),
-                child: track.imageUrl != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: Image.network(
-                          track.imageUrl!,
-                          fit: BoxFit.cover,
-                        ),
-                      )
-                    : const Icon(
-                        Icons.music_note,
-                        size: 80,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      track.categoryId,
+                      style: const TextStyle(
+                        fontSize: 52,
+                        fontWeight: FontWeight.bold,
                         color: AppTheme.primaryColor,
                       ),
+                    ),
+                    const Text(
+                      'Surah',
+                      style: TextStyle(
+                        color: AppTheme.onSurfaceVariant,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
               ),
 
               const Spacer(),
 
-              // Track Info
+              // Arabic name
               Text(
-                track.title,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                track.titleAr,
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primaryColor,
+                  height: 1.4,
+                ),
                 textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+                textDirection: TextDirection.rtl,
               ),
               const SizedBox(height: 8),
+
+              // English name
               Text(
-                track.category,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.onSurfaceVariant,
-                ),
+                track.title,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 6),
+
+              // Type + ayat count
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _Chip(label: track.type),
+                  const SizedBox(width: 8),
+                  _Chip(label: '${track.ayatCount} ayahs'),
+                ],
               ),
 
               const SizedBox(height: 32),
@@ -109,8 +140,7 @@ class PlayerPage extends StatelessWidget {
               StreamBuilder<PositionData>(
                 stream: audioProvider.playerService.positionDataStream,
                 builder: (_, snap) {
-                  final data =
-                      snap.data ??
+                  final data = snap.data ??
                       const PositionData(
                         position: Duration.zero,
                         bufferedPosition: Duration.zero,
@@ -125,7 +155,7 @@ class PlayerPage extends StatelessWidget {
                 },
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
 
               // Controls
               PlayerControls(audioProvider: audioProvider),
@@ -133,6 +163,30 @@ class PlayerPage extends StatelessWidget {
               const Spacer(),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Chip extends StatelessWidget {
+  final String label;
+  const _Chip({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryColor.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: AppTheme.primaryColor,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );

@@ -133,7 +133,9 @@ class _FavoriteTrackTile extends StatelessWidget {
         trailing: const Icon(Icons.favorite,
             color: AppTheme.primaryColor, size: 20),
         onTap: () {
-          audioProvider.loadAndPlay(track, playlist: playlist);
+          if (audioProvider.currentTrack?.id != track.id) {
+            audioProvider.loadAndPlay(track, playlist: playlist);
+          }
           Navigator.pushNamed(context, AppRouter.player);
         },
       ),

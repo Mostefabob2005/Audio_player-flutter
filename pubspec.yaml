@@ -15,7 +15,9 @@ dependencies:
   firebase_auth: ^4.17.3
   cloud_firestore: ^4.15.5
 
+
   # Biometric Auth
+  local_auth: ^2.1.8
 
   # Audio (just_audio only - no background service)
   just_audio: ^0.9.36

@@ -21,7 +21,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.audio_player"
-        minSdk = 21
+        minSdk = flutter.minSdkVersion
         targetSdk = 36
         versionCode = 1
         versionName = "1.0.0"

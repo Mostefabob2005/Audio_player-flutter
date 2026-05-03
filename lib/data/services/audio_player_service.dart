@@ -1,5 +1,7 @@
 // lib/data/services/audio_player_service.dart
 
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:rxdart/rxdart.dart';
 import '../models/track_model.dart';
@@ -20,6 +22,10 @@ class AudioPlayerService {
   final AudioPlayer _player = AudioPlayer();
   TrackModel? _currentTrack;
   List<TrackModel> _playlist = [];
+  StreamSubscription? _completionSub;
+
+  // Callback called when track changes via auto-next
+  Function(TrackModel)? onTrackChanged;
 
   AudioPlayer get player => _player;
   TrackModel? get currentTrack => _currentTrack;
@@ -49,6 +55,29 @@ class AudioPlayerService {
     await _player.setAudioSource(
       AudioSource.uri(Uri.parse(track.audioUrl)),
     );
+
+    // Listen for track completion → auto-play next
+    _completionSub?.cancel();
+    _completionSub = _player.playerStateStream.listen((state) {
+      if (state.processingState == ProcessingState.completed) {
+        debugPrint('[AudioPlayerService] Track completed: ${track.title}');
+        _autoPlayNext();
+      }
+    });
+  }
+
+  Future<void> _autoPlayNext() async {
+    final idx = _playlist.indexWhere((t) => t.id == _currentTrack?.id);
+    if (idx >= 0 && idx < _playlist.length - 1) {
+      final nextTrack = _playlist[idx + 1];
+      debugPrint('[AudioPlayerService] Auto-playing next: ${nextTrack.title}');
+      await loadTrack(nextTrack, playlist: _playlist);
+      await play();
+      // Notify AudioProvider that the track changed
+      onTrackChanged?.call(nextTrack);
+    } else {
+      debugPrint('[AudioPlayerService] Playlist finished');
+    }
   }
 
   Future<void> play() => _player.play();
@@ -72,16 +101,20 @@ class AudioPlayerService {
   Future<void> playNext() async {
     final idx = _playlist.indexWhere((t) => t.id == _currentTrack?.id);
     if (idx >= 0 && idx < _playlist.length - 1) {
-      await loadTrack(_playlist[idx + 1], playlist: _playlist);
+      final nextTrack = _playlist[idx + 1];
+      await loadTrack(nextTrack, playlist: _playlist);
       await play();
+      onTrackChanged?.call(nextTrack);
     }
   }
 
   Future<void> playPrevious() async {
     final idx = _playlist.indexWhere((t) => t.id == _currentTrack?.id);
     if (idx > 0) {
-      await loadTrack(_playlist[idx - 1], playlist: _playlist);
+      final prevTrack = _playlist[idx - 1];
+      await loadTrack(prevTrack, playlist: _playlist);
       await play();
+      onTrackChanged?.call(prevTrack);
     }
   }
 
@@ -95,5 +128,8 @@ class AudioPlayerService {
     return idx > 0;
   }
 
-  void dispose() => _player.dispose();
+  void dispose() {
+    _completionSub?.cancel();
+    _player.dispose();
+  }
 }

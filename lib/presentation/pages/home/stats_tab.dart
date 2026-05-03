@@ -7,6 +7,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/listening_stats_model.dart';
 import '../../../data/repositories/stats_repository.dart';
+import '../../providers/audio_provider.dart';
 import '../../providers/auth_provider.dart';
 
 class StatsTab extends StatefulWidget {
@@ -21,6 +22,7 @@ class _StatsTabState extends State<StatsTab> {
   ListeningStatsModel? _stats;
   int _monthlyGoal = AppConstants.defaultMonthlyGoalHours;
   bool _isLoading = true;
+  int _lastSaveCount = -1;
 
   @override
   void initState() {
@@ -28,9 +30,17 @@ class _StatsTabState extends State<StatsTab> {
     _loadData();
   }
 
+  // Called every build — reload only when AudioProvider saved new data
+  void _checkAndReload(int saveCount) {
+    if (saveCount != _lastSaveCount) {
+      _lastSaveCount = saveCount;
+      _loadData();
+    }
+  }
+
   Future<void> _loadData() async {
     final uid = context.read<AuthProvider>().user?.uid;
-    if (uid == null) return;
+    if (uid == null || uid.isEmpty) return;
 
     final stats = await _statsRepo.fetchStats(uid);
     final goal = await _statsRepo.getMonthlyGoalHours();
@@ -51,24 +61,28 @@ class _StatsTabState extends State<StatsTab> {
 
   @override
   Widget build(BuildContext context) {
+    // Watch statsSaveCount — reload when AudioProvider saves new data
+    final saveCount = context.watch<AudioProvider>().statsSaveCount;
+    _checkAndReload(saveCount);
+
     final user = context.watch<AuthProvider>().user;
 
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+        child: CircularProgressIndicator(color: AppTheme.primaryColor),
+      );
     }
 
-    if (_stats == null) {
-      return const Center(child: Text('No stats available'));
-    }
-
-    final stats = _stats!;
+    final stats = _stats ?? ListeningStatsModel.empty('');
     final monthMinutes = stats.currentMonthMinutes;
     final monthHours = monthMinutes / 60.0;
     final progress = (monthHours / _monthlyGoal).clamp(0.0, 1.0);
     final dailyData = stats.currentMonthDailyStats;
+    final hasData = dailyData.any((d) => d.minutes > 0);
 
     return RefreshIndicator(
       onRefresh: _loadData,
+      color: AppTheme.primaryColor,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(20),
@@ -93,16 +107,27 @@ class _StatsTabState extends State<StatsTab> {
             ),
             const SizedBox(height: 24),
 
-            // Total Listening Card
+            // Total Listening
             _StatCard(
-              icon: Icons.headphones,
+              icon: Icons.headphones_rounded,
               label: 'Total Listening Time',
-              value:
-                  '${stats.totalHours}h ${stats.remainingMinutes}m',
+              value: stats.totalMinutes == 0
+                  ? '0h 0m'
+                  : '${stats.totalHours}h ${stats.remainingMinutes}m',
+            ),
+            const SizedBox(height: 12),
+
+            // This Month
+            _StatCard(
+              icon: Icons.calendar_month_rounded,
+              label: 'This Month',
+              value: monthMinutes == 0
+                  ? '0h 0m'
+                  : '${monthHours.toStringAsFixed(1)}h (${monthMinutes}min)',
             ),
             const SizedBox(height: 16),
 
-            // Monthly Progress
+            // Monthly Goal
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(20),
@@ -112,14 +137,10 @@ class _StatsTabState extends State<StatsTab> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Monthly Goal',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
+                        Text('Monthly Goal',
+                            style: Theme.of(context).textTheme.titleMedium),
                         _GoalDropdown(
-                          value: _monthlyGoal,
-                          onChanged: _setGoal,
-                        ),
+                            value: _monthlyGoal, onChanged: _setGoal),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -127,19 +148,33 @@ class _StatsTabState extends State<StatsTab> {
                       borderRadius: BorderRadius.circular(8),
                       child: LinearProgressIndicator(
                         value: progress,
-                        minHeight: 10,
+                        minHeight: 12,
                         backgroundColor: AppTheme.backgroundDark,
                         valueColor: const AlwaysStoppedAnimation(
                             AppTheme.primaryColor),
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      '${monthHours.toStringAsFixed(1)}h / ${_monthlyGoal}h '
-                      '(${(progress * 100).toStringAsFixed(0)}%)',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppTheme.onSurfaceVariant,
-                          ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '${monthHours.toStringAsFixed(1)}h / ${_monthlyGoal}h',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(color: AppTheme.onSurfaceVariant),
+                        ),
+                        Text(
+                          '${(progress * 100).toStringAsFixed(0)}%',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: progress >= 1.0
+                                    ? AppTheme.primaryColor
+                                    : AppTheme.onSurfaceVariant,
+                                fontWeight: FontWeight.bold,
+                              ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -147,21 +182,43 @@ class _StatsTabState extends State<StatsTab> {
             ),
             const SizedBox(height: 16),
 
-            // Daily Histogram
+            // Bar Chart
             Card(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Text('Minutes per Day — This Month',
+                        style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 4),
                     Text(
-                      'This Month – Minutes per Day',
-                      style: Theme.of(context).textTheme.titleMedium,
+                      'Updates every 30 seconds while listening',
+                      style: TextStyle(
+                          fontSize: 11, color: AppTheme.onSurfaceVariant),
                     ),
                     const SizedBox(height: 16),
                     SizedBox(
                       height: 180,
-                      child: _DailyBarChart(dailyData: dailyData),
+                      child: hasData
+                          ? _DailyBarChart(dailyData: dailyData)
+                          : const Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.headphones_outlined,
+                                      size: 40,
+                                      color: AppTheme.onSurfaceVariant),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    'No listening data yet.\nPlay a surah for 30+ seconds!',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                        color: AppTheme.onSurfaceVariant),
+                                  ),
+                                ],
+                              ),
+                            ),
                     ),
                   ],
                 ),
@@ -174,18 +231,12 @@ class _StatsTabState extends State<StatsTab> {
   }
 }
 
-// ─── Sub-Widgets ───────────────────────────────────────────────────────────────
-
 class _StatCard extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-
-  const _StatCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
+  const _StatCard(
+      {required this.icon, required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -203,20 +254,20 @@ class _StatCard extends StatelessWidget {
               child: Icon(icon, color: AppTheme.primaryColor, size: 28),
             ),
             const SizedBox(width: 16),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(color: AppTheme.onSurfaceVariant)),
-                Text(value,
-                    style: Theme.of(context)
-                        .textTheme
-                        .headlineSmall
-                        ?.copyWith(fontWeight: FontWeight.bold)),
-              ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.onSurfaceVariant)),
+                  Text(value,
+                      style: Theme.of(context)
+                          .textTheme
+                          .headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.bold)),
+                ],
+              ),
             ),
           ],
         ),
@@ -228,7 +279,6 @@ class _StatCard extends StatelessWidget {
 class _GoalDropdown extends StatelessWidget {
   final int value;
   final ValueChanged<int> onChanged;
-
   const _GoalDropdown({required this.value, required this.onChanged});
 
   @override
@@ -237,7 +287,7 @@ class _GoalDropdown extends StatelessWidget {
       value: value,
       underline: const SizedBox(),
       dropdownColor: AppTheme.cardDark,
-      style: TextStyle(color: AppTheme.primaryColor),
+      style: const TextStyle(color: AppTheme.primaryColor),
       items: AppConstants.goalOptions
           .map((h) => DropdownMenuItem(value: h, child: Text('$h h')))
           .toList(),
@@ -248,70 +298,70 @@ class _GoalDropdown extends StatelessWidget {
 
 class _DailyBarChart extends StatelessWidget {
   final List<DailyListeningModel> dailyData;
-
   const _DailyBarChart({required this.dailyData});
 
   @override
   Widget build(BuildContext context) {
-    final maxY = dailyData.isEmpty
-        ? 60.0
-        : (dailyData.map((d) => d.minutes).reduce((a, b) => a > b ? a : b) *
-                    1.2)
-                .toDouble()
-            .clamp(10.0, double.infinity);
+    final maxMinutes =
+        dailyData.map((d) => d.minutes).fold(0, (a, b) => a > b ? a : b);
+    final maxY = (maxMinutes * 1.3).clamp(10.0, double.infinity).toDouble();
 
     return BarChart(
       BarChartData(
         maxY: maxY,
-        barTouchData: BarTouchData(enabled: false),
+        barTouchData: BarTouchData(
+          enabled: true,
+          touchTooltipData: BarTouchTooltipData(
+            getTooltipItem: (group, _, rod, __) => BarTooltipItem(
+              '${rod.toY.toInt()} min',
+              const TextStyle(color: Colors.white, fontSize: 11),
+            ),
+          ),
+        ),
         titlesData: FlTitlesData(
-          show: true,
           leftTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              reservedSize: 28,
-              getTitlesWidget: (value, _) => Text(
-                value.toInt().toString(),
-                style: const TextStyle(
-                    fontSize: 10, color: AppTheme.onSurfaceVariant),
-              ),
+              reservedSize: 32,
+              getTitlesWidget: (v, _) => Text(v.toInt().toString(),
+                  style: const TextStyle(
+                      fontSize: 10, color: AppTheme.onSurfaceVariant)),
             ),
           ),
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              getTitlesWidget: (value, _) {
-                final idx = value.toInt();
-                if (idx % 5 != 0) return const SizedBox();
-                return Text(
-                  '${idx + 1}',
-                  style: const TextStyle(
-                      fontSize: 10, color: AppTheme.onSurfaceVariant),
-                );
+              getTitlesWidget: (v, _) {
+                final idx = v.toInt();
+                if ((idx + 1) % 5 != 0) return const SizedBox();
+                return Text('${idx + 1}',
+                    style: const TextStyle(
+                        fontSize: 10, color: AppTheme.onSurfaceVariant));
               },
             ),
           ),
-          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
           rightTitles:
               const AxisTitles(sideTitles: SideTitles(showTitles: false)),
         ),
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,
-          getDrawingHorizontalLine: (_) => const FlLine(
-            color: AppTheme.cardDark,
-            strokeWidth: 1,
-          ),
+          getDrawingHorizontalLine: (_) =>
+              const FlLine(color: AppTheme.cardDark, strokeWidth: 1),
         ),
         borderData: FlBorderData(show: false),
         barGroups: List.generate(dailyData.length, (i) {
+          final min = dailyData[i].minutes.toDouble();
           return BarChartGroupData(
             x: i,
             barRods: [
               BarChartRodData(
-                toY: dailyData[i].minutes.toDouble(),
-                color: AppTheme.primaryColor,
-                width: 6,
+                toY: min,
+                color:
+                    min > 0 ? AppTheme.primaryColor : AppTheme.cardDark,
+                width: 8,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(4),
                   topRight: Radius.circular(4),

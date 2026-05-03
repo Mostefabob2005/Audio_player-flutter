@@ -2,44 +2,30 @@
 
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
-import '../../core/utils/result.dart';
-
-enum BiometricStatus { available, notEnrolled, notAvailable }
 
 class BiometricService {
   final LocalAuthentication _auth = LocalAuthentication();
 
-  /// Check if biometric hardware is available and enrolled
-  Future<BiometricStatus> checkStatus() async {
+  /// Returns true if device supports biometrics AND has enrolled fingerprints
+  Future<bool> isAvailable() async {
     try {
-      final isAvailable = await _auth.isDeviceSupported();
-      if (!isAvailable) return BiometricStatus.notAvailable;
+      final canCheck = await _auth.canCheckBiometrics;
+      final isSupported = await _auth.isDeviceSupported();
+      if (!canCheck || !isSupported) return false;
 
-      final isEnrolled = await _auth.canCheckBiometrics;
-      if (!isEnrolled) return BiometricStatus.notEnrolled;
-
-      return BiometricStatus.available;
+      final available = await _auth.getAvailableBiometrics();
+      return available.isNotEmpty;
     } catch (_) {
-      return BiometricStatus.notAvailable;
+      return false;
     }
   }
 
-  /// Returns available biometric types
-  Future<List<BiometricType>> getAvailableBiometrics() async {
-    try {
-      return await _auth.getAvailableBiometrics();
-    } catch (_) {
-      return [];
-    }
-  }
-
-  /// Authenticate with biometrics
-  /// [reason] – shown to user in the system prompt
-  Future<Result<bool>> authenticate({
-    String reason = 'Authenticate to continue',
+  /// Prompt fingerprint dialog. Returns true if authenticated.
+  Future<bool> authenticate({
+    String reason = 'Place your finger on the sensor to continue',
   }) async {
     try {
-      final authenticated = await _auth.authenticate(
+      return await _auth.authenticate(
         localizedReason: reason,
         options: const AuthenticationOptions(
           biometricOnly: true,
@@ -47,17 +33,18 @@ class BiometricService {
           useErrorDialogs: true,
         ),
       );
-      return Success(authenticated);
-    } on PlatformException catch (e) {
-      if (e.code == 'NotEnrolled') {
-        return const Failure('No fingerprint enrolled on this device');
-      }
-      return Failure(e.message ?? 'Authentication failed', error: e);
-    } catch (e) {
-      return Failure('Unexpected error during authentication', error: e);
+    } on PlatformException {
+      return false;
     }
   }
 
-  /// Stop any ongoing authentication
-  Future<void> stopAuthentication() => _auth.stopAuthentication();
+  /// Check if biometrics are enrolled — if not, user must go to Settings
+  Future<bool> hasEnrolledBiometrics() async {
+    try {
+      final list = await _auth.getAvailableBiometrics();
+      return list.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
 }

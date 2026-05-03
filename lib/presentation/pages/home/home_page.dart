@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/utils/app_router.dart';
+import '../../providers/audio_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../favorites/favorites_page.dart';
 import 'stats_tab.dart';
@@ -17,6 +18,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
+  bool _uidSet = false;
 
   final List<Widget> _tabs = const [
     StatsTab(),
@@ -25,8 +27,29 @@ class _HomePageState extends State<HomePage> {
   ];
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Set uid as soon as the widget has context — guaranteed to work
+    if (!_uidSet) {
+      final uid = context.read<AuthProvider>().user?.uid ?? '';
+      if (uid.isNotEmpty) {
+        context.read<AudioProvider>().setUid(uid);
+        _uidSet = true;
+        debugPrint('[HomePage] setUid called with: $uid');
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
+
+    // Also set uid in build in case it wasn't available in didChangeDependencies
+    if (!_uidSet && (user?.uid ?? '').isNotEmpty) {
+      context.read<AudioProvider>().setUid(user!.uid);
+      _uidSet = true;
+      debugPrint('[HomePage] setUid called in build with: ${user.uid}');
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -34,8 +57,8 @@ class _HomePageState extends State<HomePage> {
           _currentIndex == 0
               ? 'Dashboard'
               : _currentIndex == 1
-              ? 'Library'
-              : 'Favorites',
+                  ? 'Library'
+                  : 'Favorites',
         ),
         actions: [
           IconButton(
@@ -80,13 +103,17 @@ class _HomePageState extends State<HomePage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: 16),
-            const CircleAvatar(radius: 36, child: Icon(Icons.person, size: 36)),
+            const CircleAvatar(
+              radius: 36,
+              child: Icon(Icons.person, size: 36),
+            ),
             const SizedBox(height: 12),
             Text(
               name,
-              style: Theme.of(
-                ctx,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(ctx)
+                  .textTheme
+                  .titleLarge
+                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 24),
             ListTile(

@@ -11,6 +11,7 @@ import 'data/repositories/favorites_repository.dart';
 import 'data/repositories/stats_repository.dart';
 import 'data/services/audio_player_service.dart';
 import 'data/services/auth_service.dart';
+import 'data/services/quran_api_service.dart';
 import 'firebase_options.dart';
 import 'presentation/providers/audio_provider.dart';
 import 'presentation/providers/auth_provider.dart';
@@ -44,6 +45,7 @@ class AudioSecureApp extends StatelessWidget {
         Provider(create: (_) => FavoritesRepository()),
         Provider(create: (_) => StatsRepository()),
         Provider(create: (_) => AudioPlayerService()),
+        Provider(create: (_) => QuranApiService()),
         ChangeNotifierProvider(
           create: (ctx) => AuthProvider(ctx.read<AuthService>()),
         ),
@@ -60,7 +62,7 @@ class AudioSecureApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.darkTheme,
         onGenerateRoute: AppRouter.generateRoute,
-        initialRoute: AppRouter.login,
+        initialRoute: AppRouter.biometric,
       ),
     );
   }
